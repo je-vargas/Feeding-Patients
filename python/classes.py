@@ -4,20 +4,29 @@ TIME_RISK= 1
 FEED_AGE = 2 
 GRV = 3
 ISSUES_WEIGHT= 4
+MAX_FEEDING_OVER_40 = 250
 
 class Patient:
-    
-    def __init__(self, row_passed):
-        self.__age = row_passed[0]
-        self.__weight = row_passed[1]
-        self.__risk = row_passed[2]
+
+    def __init__(self):
+        self.__age = 0
+        self.__weight = 0
+        self.__risk = None
         self.__feed = None
+        self.__issues = None
         self.__current_grv = None
         self.__target_grv = None
         self.__data = list()
         self.__diagosis = list()
 
     # ------- SETTER 
+    def set_age(self, row):
+        self.__age = row[0]
+    def set_weight(self, row):
+        self.__weight = row[1]
+    def set_risk(self, row):
+        self.__risk = row[2]
+
     def set_feed(self, feed_passed):
         '''
             description: function in intialising variable feed 
@@ -27,13 +36,13 @@ class Patient:
 
     def set_feed_increment(self):
         if(self.__risk == "LR"):
-            if (self.__feed == 5):
-                self.__feed = 10
-
+            if(self.__weight < 40):
+                self.__feed = self.__feed + 10
+            else:
+                self.__feed = self.__feed + 30
             
-        else:
+        else: # this means it's a High Risk patient
             pass
-        # high risk
 
     def set_target_grv(self):
         self.__target_grv = self.__weight * self.__feed
@@ -46,13 +55,15 @@ class Patient:
 
     def set_data(self, data_array):
         self.__data = data_array
-        
-    def set_risk(self, risk):
-        self.__risk = risk
 
-    
+    def set_diagnosis(self, diagnosis):
+        self.__issues = diagnosis
+
         
     # ------- GETTER
+    def get_diagnosis(self):
+        return self.__issues
+    
     def get_daily_assessment(self):
         return self.__diagosis
 
@@ -68,11 +79,18 @@ class Patient:
     def get_data(self):
         return self.__data
 
+    def print_hourly_data(self):
+        for row in self.__data:
+            print(str(row))
+
     def get_feed(self):
         return self.__feed
 
     def get_weight(self):
         return self.__weight
+
+    def __str__(self):
+        return "Patient's Info\n" + "current feed: " + str(self.__feed) + ", target grv: " + str(self.__target_grv) + ", current grv: " + str(self.__current_grv) + str(self.print_hourly_data())
 
 
 
