@@ -4,7 +4,7 @@ TIME_RISK= 1
 FEED_AGE = 2 
 GRV = 3
 ISSUES_WEIGHT= 4
-MAX_FEEDING_OVER_40 = 250
+MAX_FEEDING_OVER_40 = "250"
 
 class Patient:
 
@@ -13,11 +13,12 @@ class Patient:
         self.__weight = 0
         self.__risk = None
         self.__feed = None
-        self.__issues = None
+        self.__diagosis = None
         self.__current_grv = None
         self.__target_grv = None
         self.__data = list()
-        self.__diagosis = list()
+        self.__week_diagnosis = list()
+        
 
     # ------- SETTER 
     def set_age(self, row):
@@ -37,9 +38,9 @@ class Patient:
     def set_feed_increment(self):
         if(self.__risk == "LR"):
             if(self.__weight < 40):
-                self.__feed = self.__feed + 10
+                self.__feed = 10
             else:
-                self.__feed = self.__feed + 30
+                self.__feed = 30
             
         else: # this means it's a High Risk patient
             pass
@@ -58,9 +59,19 @@ class Patient:
 
     def set_diagnosis(self, diagnosis):
         self.__issues = diagnosis
+    
+    def set_week_diagnosis(self, end_day_diagnosis):
+        self.__week_diagnosis = end_day_diagnosis
+
 
         
     # ------- GETTER
+    def get_week_diagnosis(self):
+        for day in range(5):
+            if(day == ""):
+                self.__week_diagnosis.append("None")
+        return self.__week_diagnosis
+
     def get_diagnosis(self):
         return self.__issues
     

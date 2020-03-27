@@ -18,13 +18,15 @@ def read_file (file_path, patient_object):
                 patient_object.set_age(clean_up_string(current_row)) #initialise object as patient
                 patient_object.set_weight(clean_up_string(current_row)) #initialise object as patient
                 patient_object.set_risk(clean_up_string(current_row)) #initialise object as patient
-
+                # print(patient_object.get_weight())
             else: # gets all the hourly current_rows
                 if(current_row[DAY_PATIENT]== "1" and "00:00" in current_row[TIME_RISK]): #gets only days 1 as this holds patient feeding info
                     patient_object.set_feed(clean_up_feed(current_row)) # us this to set the feeding attribute in patient object
+                    # print("feed after cleaning " + str(patient_object.get_feed()))
                     patient_object.set_target_grv()
                     current_row[FEED_AGE] = patient_object.get_feed()
                     patient_object.set_diagnosis(current_row[ISSUES_WEIGHT])
+                    # print(patient_object.get_target_grv())
                 hourly_data.append(current_row) #adding all current_row to array 
     
     patient_object.set_data(hourly_data) #save hourly data inside the object
@@ -43,20 +45,22 @@ def low_risk_blanks(patient_passed):
         # feed every 2 hours
         if(hour % 2 == 0 and not terminate): # here we are feeding every 2 hours as per flowchart
 
-            if (feeding_stopped == 3):
+            if (feeding_stopped == 2):
                 # print(current_row)
                 terminate = True
 
-            if(grv_is_over and current_row[GRV] > target_grv): #check used to stop adding feeds when patient has been refered to dietician
-                feeding_stopped += 1
-                current_row[FEED_AGE] = "No Feeding"
-                current_row[ISSUES_WEIGHT] = "Feeding Stopped"
-            elif (terminate):
+            if (terminate):
                 current_row[FEED_AGE] = None
                 current_row[ISSUES_WEIGHT] = "Refer to Dietician "
                 grv_is_over = False
+            elif(grv_is_over and current_row[GRV] > target_grv): #check used to stop adding feeds when patient has been refered to dietician
+                feeding_stopped += 1
+                current_row[FEED_AGE] = "No Feeding"
+                current_row[ISSUES_WEIGHT] = "Feeding Stopped"
             else:
-                update_feeding_diagmnosis(current_row, patient_passed)
+                update_feeding_diagnosis(current_row, patient_passed)
+
+            
 
             # check every four hours and adjust GRV
             if (hour % 4 == 0 and not grv_is_over ):
@@ -70,12 +74,12 @@ def low_risk_blanks(patient_passed):
                         
                         if(patient_passed.get_feed() == 5 ):
                             patient_passed.set_feed(10)
-                            update_feeding_diagmnosis(current_row, patient_passed)
+                            update_feeding_diagnosis(current_row, patient_passed)
                         else:
                             patient_passed.set_feed_increment()
-                            update_feeding_diagmnosis(current_row, patient_passed)
+                            update_feeding_diagnosis(current_row, patient_passed)
                     
-                    elif(current_row[GRV] > target_grv and current_row[GRV] != ""): 
+                    elif(current_row[GRV] > target_grv and current_row[GRV] != "" and not terminate): 
                     # current target is more that target stop feeding check every 2 hours now
 
                         grv_is_over = True
@@ -85,38 +89,50 @@ def low_risk_blanks(patient_passed):
                         # print(current_row)
                 
                 else: #patient weight is over 40
-                    print("hitting the over 40's")
                     if(current_row[GRV] < MAX_FEEDING_OVER_40 and current_row[GRV] != ""): #less so increment feed
+                        
                         if(patient_passed.get_feed() == 20):
                             patient_passed.set_feed(30)
-                            current_row[FEED_AGE] = patient_passed.get_feed()
-                            current_row[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
+                            update_feeding_diagnosis(current_row, patient_passed)
                             # print(current_row)
                         else:
                             patient_passed.set_feed_increment()
-                            current_row[FEED_AGE] = patient_passed.get_feed()
-                            current_row[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
+                            update_feeding_diagnosis(current_row, patient_passed)
 
-                    elif(current_row[GRV] != ""):# current target is more that target stop feeding
-                        if(feeding_stopped == 3):
-                            current_row[FEED_AGE] = None
-                            current_row[ISSUES_WEIGHT] = "Refere to Dietician"
-
-                        else:
-                            current_row[FEED_AGE] = "No Feeding"
-                            current_row[ISSUES_WEIGHT] = "Feeding Stopped"
-                            feeding_stopped += 1
-                    # else:
-                    #     current_row[FEED_AGE] = patient_passed.get_feed() #keeps feed at starting value until checked for @ 4 hour
-        
+                    elif(current_row[GRV] > target_grv and current_row != ""):# current target is more that target stop feeding
+                        grv_is_over = True
+                        feeding_stopped += 1
+                        current_row[FEED_AGE] = "No Feeding"
+                        current_row[ISSUES_WEIGHT] = "Feeding Stopped"
+                        
+    end_of_day_diagnosis(day_data, patient_passed)
     patient_passed.set_data(day_data)
 
 
-def update_feeding_diagmnosis(current_row, patient_passed):
+# def refer_to_dietician(grv_is_over, current_row, target_grv, feed):
+    
+
+def end_of_day_diagnosis(day_data, current_paitient):
+    day = 0
+    weekly_diagnosis = [None] * 5
+    
+    for current_row in day_data:
+        if (current_row[DAY_PATIENT] != "" ):
+            day = int(current_row[DAY_PATIENT])
+            print(day)
+
+        if("Refer" in current_row[ISSUES_WEIGHT]):
+            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
+        elif("Feeding" in current_row[ISSUES_WEIGHT] and "22" in current_row[TIME_RISK]):
+            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
+        elif("22" in current_row[TIME_RISK] and current_row[ISSUES_WEIGHT] != ""):
+            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
+
+    current_paitient.set_week_diagnosis(weekly_diagnosis)
+
+def update_feeding_diagnosis(current_row, patient_passed):
     current_row[FEED_AGE] = patient_passed.get_feed()
     current_row[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
-
-
 
 def clean_up_string(patient_info):
     cleaned_data = list()
@@ -139,11 +155,15 @@ def clean_up_feed(feed_current_row):
         
 
 if __name__ == "__main__":
-    path ="/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
-    patient_1 = Patient()
-    read_file(path, patient_1)
-    # print(patient_1.print_hourly_data())
-    print("-------- AFTER PASSING TO LOW RISK ----------")
-    low_risk_blanks(patient_1)
-    print(patient_1.print_hourly_data())
+
+    # current low risk ar (b1 b3 b5 b7)
+    patient_b2 = Patient()
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv"
+    path  = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
+    read_file(path, patient_b2)
+    print("\n\nAfter going through low risk function")
+    low_risk_blanks(patient_b2)
+    print(patient_b2.get_week_diagnosis())
+    # print(patient_b2)
+    
 
