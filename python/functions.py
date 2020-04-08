@@ -1,9 +1,11 @@
 import csv
 from classes import *
 
-def read_file (file_path, patient_object):
+def read_file(file_path, patient_object):
     '''
-        returns : the object where all data read from csv is saved
+        DESCRIPTION: populates age, weight, risk, target_grv and diagnosies found from file
+        Additioanl info: calls clean_up_string function to clean the data saved into the object
+
     '''
     hourly_data = list()
     
@@ -27,69 +29,71 @@ def read_file (file_path, patient_object):
                     current_row[FEED_AGE] = patient_object.get_feed()
                     patient_object.set_diagnosis(current_row[ISSUES_WEIGHT])
                     # print(patient_object.get_target_grv())
+
                 hourly_data.append(current_row) #adding all current_row to array 
     
     patient_object.set_data(hourly_data) #save hourly data inside the object
 
 def low_risk_blanks(patient_passed):
+    '''
+        DESCRIPTION: Follows low risk patient flowchart, populating patient feeds 
+    '''
+    # ------------- function variables declaration
     day_data = patient_passed.get_data() #returns the array with hourly data
-    feeding_stopped = 0
-    grv_is_over = False
-    target_grv = str(patient_passed.get_target_grv()) #use target_grv as a measure to either increase feed or stop feeding
-    terminate = False
+    target_grv = int(patient_passed.get_target_grv()) #use target_grv as a measure to either increase feed or stop feeding
     
+    feeding_stopped = 0
+    grv_is_over_target = False
+    refer_to_dietician = False
+    # -------------
+
+    # ------------- Loop over passed patient data
     for current_row in day_data:
 
         hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
+        current_grv = current_grv_integer_cleaned(current_row) # returns the current grv as an integer
+        
+        if(hour % 2 == 0 and not refer_to_dietician): # !!!!!!!!! this needs to change to finish populating until there is no more grv to check
 
-        # feed every 2 hours
-        if(hour % 2 == 0 and not terminate): # here we are feeding every 2 hours as per flowchart
-
+            # ------------- handles dietician referal
             if (feeding_stopped == 2):
+                refer_to_dietician = True
                 # print(current_row)
-                terminate = True
 
-            if (terminate):
+            if (refer_to_dietician):
                 current_row[FEED_AGE] = None
                 current_row[ISSUES_WEIGHT] = "Refer to Dietician "
-                grv_is_over = False
-            elif(grv_is_over and current_row[GRV] > target_grv): #check used to stop adding feeds when patient has been refered to dietician
+                grv_is_over_target = False
+            elif(grv_is_over_target and current_grv > target_grv): #check used to stop adding feeds when patient has been refered to dietician
                 feeding_stopped += 1
                 current_row[FEED_AGE] = "No Feeding"
                 current_row[ISSUES_WEIGHT] = "Feeding Stopped"
             else:
                 update_feeding_diagnosis(current_row, patient_passed)
-
+            # -------------
             
 
             # check every four hours and adjust GRV
-            if (hour % 4 == 0 and not grv_is_over ):
+            if (hour % 4 == 0 and not grv_is_over_target ):
 
-                patient_passed.set_current_grv(current_row[GRV]) # set current grv from file
+                patient_passed.set_current_grv(current_row[GRV]) # current grv is set as each row is read
                             
                 if(patient_passed.get_weight() < 40 ): #patient weight is under 40
 
-                    #current target is less so increment feed and the grv is present
-                    if(current_row[GRV] <= target_grv and current_row[GRV] != ""): 
-                        
-                        if(patient_passed.get_feed() == 5 ):
-                            patient_passed.set_feed(10)
-                            update_feeding_diagnosis(current_row, patient_passed)
-                        else:
-                            patient_passed.set_feed_increment()
-                            update_feeding_diagnosis(current_row, patient_passed)
+                    if(current_grv <= target_grv and current_row[GRV] != ""):  #current target is less so increment feed and the grv is present
+                     
+                        set_feed(patient_passed, current_row)
                     
-                    elif(current_row[GRV] > target_grv and current_row[GRV] != "" and not terminate): 
-                    # current target is more that target stop feeding check every 2 hours now
-
-                        grv_is_over = True
+                    elif(current_grv > target_grv and current_row[GRV] != "" and not refer_to_dietician): # current target is more that target stop feeding check every 2 hours now
+                
+                        grv_is_over_target = True
                         feeding_stopped += 1
                         current_row[FEED_AGE] = "No Feeding"
                         current_row[ISSUES_WEIGHT] = "Feeding Stopped"
                         # print(current_row)
                 
                 else: #patient weight is over 40
-                    if(current_row[GRV] < MAX_FEEDING_OVER_40 and current_row[GRV] != ""): #less so increment feed
+                    if(current_grv < target_grv and current_grv != ""): #less so increment feed
                         
                         if(patient_passed.get_feed() == 20):
                             patient_passed.set_feed(30)
@@ -99,27 +103,24 @@ def low_risk_blanks(patient_passed):
                             patient_passed.set_feed_increment()
                             update_feeding_diagnosis(current_row, patient_passed)
 
-                    elif(current_row[GRV] > target_grv and current_row != ""):# current target is more that target stop feeding
-                        grv_is_over = True
+                    elif(current_grv > target_grv and current_row[GRV] != "" and not refer_to_dietician):# current target is more that target stop feeding
+                        grv_is_over_target = True
                         feeding_stopped += 1
                         current_row[FEED_AGE] = "No Feeding"
                         current_row[ISSUES_WEIGHT] = "Feeding Stopped"
+                    
                         
-    end_of_day_diagnosis(day_data, patient_passed)
-    patient_passed.set_data(day_data)
+    end_of_day_diagnosis(day_data, patient_passed) # this needs to be fixed
 
-
-# def refer_to_dietician(grv_is_over, current_row, target_grv, feed):
-    
+    patient_passed.set_data(day_data)    
 
 def end_of_day_diagnosis(day_data, current_paitient):
     day = 0
-    weekly_diagnosis = [None] * 5
+    weekly_diagnosis = ["None"] * 5
     
     for current_row in day_data:
         if (current_row[DAY_PATIENT] != "" ):
-            day = int(current_row[DAY_PATIENT])
-            print(day)
+            day = int(current_row[DAY_PATIENT]) - 1
 
         if("Refer" in current_row[ISSUES_WEIGHT]):
             weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
@@ -131,6 +132,11 @@ def end_of_day_diagnosis(day_data, current_paitient):
     current_paitient.set_week_diagnosis(weekly_diagnosis)
 
 def update_feeding_diagnosis(current_row, patient_passed):
+    '''
+        DESCRITPTION: this function is updating the feed and issue from the patient which is the most upto date information
+                        as each row is read 
+                        
+    '''
     current_row[FEED_AGE] = patient_passed.get_feed()
     current_row[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
 
@@ -153,17 +159,41 @@ def clean_up_feed(feed_current_row):
     feed_to_return = feed_joined[0:feed_length]
     return int(feed_to_return)
         
+def current_grv_integer_cleaned(row):
+    current_grv = 0
+    if (row[GRV] != "GRV" and row[GRV] != ""):
+            current_grv = int(float(row[GRV]))
+    return current_grv
+
+def set_feed(patient_passed, row_passed):
+    if(patient_passed.get_feed() == 5 ):
+        patient_passed.set_feed(10)
+        update_feeding_diagnosis(row_passed, patient_passed)
+    else:
+        patient_passed.set_feed_increment()
+        update_feeding_diagnosis(row_passed, patient_passed)
+
+    # if(patient_passed.get_feed() == 5 ):
+    #     patient_passed.set_feed(10)
+    #     update_feeding_diagnosis(current_row, patient_passed)
+    # else:
+    #     patient_passed.set_feed_increment()
+    #     update_feeding_diagnosis(current_row, patient_passed)
 
 if __name__ == "__main__":
 
-    # current low risk ar (b1 b3 b5 b7)
-    patient_b2 = Patient()
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv"
-    path  = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
-    read_file(path, patient_b2)
-    print("\n\nAfter going through low risk function")
-    low_risk_blanks(patient_b2)
-    print(patient_b2.get_week_diagnosis())
-    # print(patient_b2)
+    # current low risk under 40 (b1 b3 b5 b7)
     
-
+    path  = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv"
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv"
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
+    
+    patient= Patient()
+    read_file(path, patient)
+    low_risk_blanks(patient)
+    
+    print("------------- PATIENT B1 -------------")
+    print(patient)
+    print("\n------------- HOURLY DATA:")
+    print(patient.print_hourly_data())

@@ -101,10 +101,7 @@ class Patient:
         return self.__weight
 
     def __str__(self):
-        return "Patient's Info\n" + "current feed: " + str(self.__feed) + ", target grv: " + str(self.__target_grv) + ", current grv: " + str(self.__current_grv) + str(self.print_hourly_data())
-
-
-
+        return "\n------------- Patient's Info:\n" + "age: " + str(self.__age) + "\nweight: " + str(self.__weight) + "\nrisk: " + str(self.__risk) + "\ntarget grv: " + str(self.__target_grv) + "\ncurrent grv: " + str(self.__current_grv) + "\ncurrent feed: " + str(self.__feed) +  "\nweek diagnosis: " + str(self.get_week_diagnosis())
 
 
 
