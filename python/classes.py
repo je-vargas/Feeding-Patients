@@ -13,6 +13,11 @@ class Patient:
         self.__weight = 0
         self.__risk = None
         self.__feed = None
+        self.__feed_stop_counter = 0
+        self.__feed_increment_bool= False
+        self.__feed_stop_bool= False
+        self.__dietician_referal= False
+        self.__reset_counter = False
         self.__diagosis = None
         self.__current_grv = None
         self.__target_grv = None
@@ -35,15 +40,46 @@ class Patient:
         '''
         self.__feed = feed_passed
 
-    def set_feed_increment(self):
-        if(self.__risk == "LR"):
-            if(self.__weight < 40):
-                self.__feed = 10
-            else:
-                self.__feed = 30
+    def set_feed_increment_boolean(self, true_false):
+        '''
+            description: 
+        '''
+        self.__feed_increment_bool = true_false
+
+    def set_feed_stopped_boolean(self, true_false):
+        '''
+            description: 
+        '''
+        self.__feed_stop_bool = true_false
+
+    def set_feed_stop_counter(self, number_of_pauses=0):
+        '''
+            description: keeps track of number of feedings stopped when grv is over target 
+                        - incrementing to refer to dietician
+        '''
+        self.__feed_stop_counter += 1
+        
+        if(self.__feed_stop_counter == 3):
+            self.__dietician_referal = True
+        
+        if(self.__reset_counter):
+            self.__feed_stop_counter = number_of_pauses
+
+        if(self.__feed_stop_counter > 3):
+            print("feed counter has not been reset")
+
+    def set_dietician_referal_bool(self, true_false):
+        '''
+            description: 
+        '''
+        self.__dietician_referal = true_false
+
+    def set_reset_counter(self, true_false):
+        '''
+            description: 
+        '''
+        self.__reset_counter = true_false
             
-        else: # this means it's a High Risk patient
-            pass
 
     def set_target_grv(self):
         self.__target_grv = self.__weight * self.__feed
@@ -96,6 +132,33 @@ class Patient:
 
     def get_feed(self):
         return self.__feed
+
+    def get_feed_stopped(self):
+        return self.__feed_stop_counter
+
+    def get_feed_increment_boolean(self):
+        '''
+            description: 
+        '''
+        return self.__feed_increment_bool
+
+    def get_feed_stopped_boolean(self):
+        '''
+            description: 
+        '''
+        return self.__feed_stop_bool
+
+    def get_dietician_referal_bool(self):
+        '''
+            description: 
+        '''
+        return self.__dietician_referal
+
+    def get_reset_counter_bool(self):
+        '''
+            description: 
+        '''
+        return self.__reset_counter
 
     def get_weight(self):
         return self.__weight
