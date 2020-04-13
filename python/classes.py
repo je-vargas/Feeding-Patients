@@ -40,6 +40,10 @@ class Patient:
         '''
         self.__feed = feed_passed
 
+        if(self.__weight > 40):
+            if(self.__feed < 20):
+                self.__feed = 20
+
     def set_feed_increment_boolean(self, true_false):
         '''
             description: 
@@ -82,7 +86,10 @@ class Patient:
             
 
     def set_target_grv(self):
-        self.__target_grv = self.__weight * self.__feed
+        if(self.__weight > 40):
+            self.__target_grv = self.__weight * 5
+        else:
+            self.__target_grv = self.__weight * self.__feed
 
     def set_current_grv(self, current_grv):
         self.__current_grv = current_grv
