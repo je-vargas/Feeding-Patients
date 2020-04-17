@@ -11,6 +11,11 @@ LOW RISK OVER 40KG
 
 
 HIGH RISK
-    A1 - 
-    A2 - 
-    A3 - 
+    A1 - working --> need to fix when it gets passed down to low risk
+    A2 - working --> need to fix when it gets passed down to low risk 
+    A3 - working --> need to fix when it gets passed down to low risk
+
+    * also add printing of HR -> (ml/hr) or  LR -> (ml/2hr)
+
+    - check 5 day reports
+    - then right sorting algorithm

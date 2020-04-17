@@ -1,4 +1,5 @@
 import csv
+import re
 from classes import *
 
 def read_file(file_path, patient_object):
@@ -20,14 +21,14 @@ def read_file(file_path, patient_object):
                 patient_object.set_age(clean_up_string(current_row)) #initialise object as patient
                 patient_object.set_weight(clean_up_string(current_row)) #initialise object as patient
                 patient_object.set_risk(clean_up_string(current_row)) #initialise object as patient
-                # print(patient_object.get_weight())
             else: # gets all the hourly current_rows
                 if(current_row[DAY_PATIENT]== "1" and "00:00" in current_row[TIME_RISK]): #gets only days 1 as this holds patient feeding info
-                    patient_object.set_feed(clean_up_feed(current_row)) # this to set the feeding attribute in patient object
+                    set_feed_HR_LR(patient_object, current_row)
                     patient_object.set_diagnosis(current_row[ISSUES_WEIGHT])
                     patient_object.set_target_grv()
-                    # current_row[FEED_AGE] = patient_object.get_feed()
-                    adjust_new_feed(patient_object, current_row)
+                    current_row[FEED_AGE] = patient_object.get_feed()
+
+                    adjust_new_feed_low_risk(patient_object, current_row)
 
                 hourly_data.append(current_row) #adding all current_row to array 
     
@@ -40,85 +41,117 @@ def low_risk_patients(patient_passed):
     # ------------- function variables declaration
     day_data = patient_passed.get_data() #returns the array with hourly data
     target_grv = int(patient_passed.get_target_grv()) #use target_grv as a measure to either increase feed or stop feeding
-
     # ------------- Loop over passed patient data
    
     for current_row in day_data:
 
-        hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
-        current_grv = current_grv_integer_cleaned(current_row) # returns the current grv as an integer
-        
-        if(hour % 2 == 0): # !!!!!!!!! this needs to change to finish populating until there is no more grv to check
-
-            if(patient_passed.get_feed_stopped_boolean()):
-                patient_passed.set_current_grv(current_grv)
-
-                if(patient_passed.get_dietician_referal_bool()):
-                    reset_counter_after_referal(patient_passed)
-                   
-
-                if(current_grv > target_grv and current_row[GRV] != ""): 
-                    patient_passed.set_feed_stop_counter()
-                    adjust_new_feed(patient_passed, current_row)
-                    
-                elif(patient_passed.get_weight() < 40): #current target is less so increment feed and the grv is present
-                    patient_passed.set_feed_increment_boolean(True)
-                    patient_passed.set_feed_stopped_boolean(False)
-                    patient_passed.set_feed(10)
-                    adjust_new_feed(patient_passed, current_row)
-                    reset_counter_after_referal(patient_passed)
-                else:
-                    patient_passed.set_feed_increment_boolean(True)
-                    patient_passed.set_feed_stopped_boolean(False)
-                    patient_passed.set_feed(30)
-                    adjust_new_feed(patient_passed, current_row)
-                    reset_counter_after_referal(patient_passed)
-
-
-            else:
-
-                adjust_new_feed(patient_passed, current_row) #need to feed every 2 hour or check depeding on flowchart and patient
+        if (str(patient_passed.get_risk()) == "HR" and current_row[GRV] == ""):
+           pass
+    
+        else:
+            hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
+            current_grv = current_grv_integer_cleaned(current_row) # returns the current grv as an integer
             
-            if(hour % 4 == 0 and not patient_passed.get_feed_stopped_boolean()): # check every four hours and adjust GRV
+            if(hour % 2 == 0 or (hour % 2 == 1 and current_row[GRV] != "")): # this is using the hours to check either every 2 or 4 hours to populate
 
-                patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
-                            
-                if(patient_passed.get_weight() < 40 ): #patient weight is under 40
+                if(patient_passed.get_feed_stopped_boolean()):
+                    patient_passed.set_current_grv(current_grv)
 
-                    if(current_grv <= target_grv and current_row[GRV] != "" ):  #current target is less so increment feed and the grv is present
+                    if(patient_passed.get_dietician_referal_bool()):
+                        reset_counter_after_referal(patient_passed)
+                    
+
+                    if(current_grv > target_grv and current_row[GRV] != ""): 
+                        patient_passed.set_feed_stop_counter()
+                        adjust_new_feed_low_risk(patient_passed, current_row)
+                        
+                    elif(patient_passed.get_weight() < 40): #current target is less so increment feed and the grv is present
                         patient_passed.set_feed_increment_boolean(True)
                         patient_passed.set_feed_stopped_boolean(False)
                         patient_passed.set_feed(10)
-                        adjust_new_feed(patient_passed, current_row) #keeps icrementing feed until grv is over
-                    
-                    elif(current_grv > target_grv): # current target is more that target stop feeding check every 2 hours now
-                        patient_passed.set_feed_increment_boolean(False)
-                        patient_passed.set_feed_stopped_boolean(True)
-                        patient_passed.set_feed_stop_counter()
-                        adjust_new_feed(patient_passed, current_row)
-
-                else: #patient weight is over 40
-                    if(current_grv <= target_grv and current_row[GRV] != "" ):  #current target is less so increment feed and the grv is present
+                        adjust_new_feed_low_risk(patient_passed, current_row)
+                        reset_counter_after_referal(patient_passed)
+                    else:
                         patient_passed.set_feed_increment_boolean(True)
                         patient_passed.set_feed_stopped_boolean(False)
                         patient_passed.set_feed(30)
-                        adjust_new_feed(patient_passed, current_row) #keeps icrementing feed until grv is over
-                    
-                    elif(current_grv > target_grv): # current target is more that target stop feeding check every 2 hours now
-                        patient_passed.set_feed_increment_boolean(False)
-                        patient_passed.set_feed_stopped_boolean(True)
-                        patient_passed.set_feed_stop_counter()
-                        adjust_new_feed(patient_passed, current_row)
+                        adjust_new_feed_low_risk(patient_passed, current_row)
+                        reset_counter_after_referal(patient_passed)
+                else:
+
+                    adjust_new_feed_low_risk(patient_passed, current_row) #need to feed every 2 hour or check depeding on flowchart and patient
+                
+                if(hour % 4 == 0 and not patient_passed.get_feed_stopped_boolean() or (hour % 4 == 1 and current_row[GRV] != "")): # check every four hours and adjust GRV
+
+                    patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
+                                
+                    if(patient_passed.get_weight() < 40 ): #patient weight is under 40
+
+                        if(current_grv <= target_grv and current_row[GRV] != "" ):  #current target is less so increment feed and the grv is present
+                            patient_passed.set_feed_increment_boolean(True)
+                            patient_passed.set_feed_stopped_boolean(False)
+                            patient_passed.set_feed(10)
+                            adjust_new_feed_low_risk(patient_passed, current_row) #keeps icrementing feed until grv is over
+                        
+                        elif(current_grv > target_grv): # current target is more that target stop feeding check every 2 hours now
+                            patient_passed.set_feed_increment_boolean(False)
+                            patient_passed.set_feed_stopped_boolean(True)
+                            patient_passed.set_feed_stop_counter()
+                            adjust_new_feed_low_risk(patient_passed, current_row)
+
+                    else: #patient weight is over 40
+                        if(current_grv <= target_grv and current_row[GRV] != "" ):  #current target is less so increment feed and the grv is present
+                            patient_passed.set_feed_increment_boolean(True)
+                            patient_passed.set_feed_stopped_boolean(False)
+                            patient_passed.set_feed(30)
+                            adjust_new_feed_low_risk(patient_passed, current_row) #keeps icrementing feed until grv is over
+                        
+                        elif(current_grv > target_grv): # current target is more that target stop feeding check every 2 hours now
+                            patient_passed.set_feed_increment_boolean(False)
+                            patient_passed.set_feed_stopped_boolean(True)
+                            patient_passed.set_feed_stop_counter()
+                            adjust_new_feed_low_risk(patient_passed, current_row)
  
     weekly_diagnosis(day_data, patient_passed) # this needs to be fixed
 
     patient_passed.set_data(day_data)    
 
 def high_risk_patients(patient_object):
-    
 
-''' ----------------------------------- '''
-def adjust_new_feed(patient_passed, row_passed):
+    day_data = patient_object.get_data()
+    
+    for current_row in day_data:
+
+        if(current_row[GRV] == "" and not patient_object.get_low_risk_transfer_bool()): #checks to see if there's a grv value -> in which case transfer to low risk 
+            # continue with high risk flowchart rules
+            if(str(current_row[FEED_AGE]) != str(patient_object.get_feed()) and current_row[FEED_AGE] != ""):
+                patient_object.set_change_feed_bool(True)
+                adjust_new_feed_high_risk(patient_object, current_row)
+            else:
+                patient_object.set_change_feed_bool(False)
+                adjust_new_feed_high_risk(patient_object, current_row)
+        else:
+            # passed to become low risk
+            patient_object.set_low_risk_transfer_bool(True)
+            break
+
+    if(patient_object.get_low_risk_transfer_bool()):
+            low_risk_patients(patient_object)
+
+
+def adjust_new_feed_high_risk(patient_passed, row_passed):
+
+    # new_feed_found = patient_passed.get_feed()
+
+    if(patient_passed.get_change_feed_bool()):
+        patient_passed.set_feed(clean_up_feed_high_risk(row_passed))
+        row_passed[FEED_AGE] = patient_passed.get_feed()
+    elif(row_passed[ISSUES_WEIGHT] == 'NONE'):
+        row_passed[FEED_AGE] = patient_passed.get_feed()
+
+
+
+def adjust_new_feed_low_risk(patient_passed, row_passed):
     '''
         Description: set feed increments, pauses and normal feeds of patient from original value giving in the CSV file for LOW RISK patients
     '''
@@ -140,7 +173,7 @@ def adjust_new_feed(patient_passed, row_passed):
         
     else:
         row_passed[FEED_AGE] = patient_passed.get_feed()
-        row_passed[ISSUES_WEIGHT] = patient_passed.get_diagnosis()     
+        row_passed[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
 
 def reset_counter_after_referal(patient_passed):
     '''
@@ -185,7 +218,7 @@ def clean_up_string(patient_info):
     # print("cleaned data is: " + str(cleaned_data))
     return cleaned_data
 
-def clean_up_feed(feed_current_row):
+def clean_up_feed_low_risk(feed_current_row):
 
     '''
         Description: Feed is integer with quantity in ml, this function cleans and returns the number only
@@ -193,8 +226,20 @@ def clean_up_feed(feed_current_row):
 
     feed_joined = ''.join(filter(lambda i: i.isdigit(), feed_current_row[FEED_AGE]))
     feed_length = len(feed_joined) - 1
-    feed_to_return = feed_joined[0:feed_length]
-    return int(feed_to_return)
+    feed_to_return = int(feed_joined[0:feed_length])
+    return feed_to_return
+
+def clean_up_feed_high_risk(feed_current_row):
+
+    '''
+        Description: Feed is integer with quantity in ml, this function cleans and returns the number only
+    '''
+    feed_into_array = re.findall(r"[-+]?\d*\.\d+|\d+", feed_current_row[FEED_AGE])
+    if feed_into_array[0].isdigit():
+        feed_to_return = int(feed_into_array[0])
+    else:
+        feed_to_return = float(feed_into_array[0])
+    return feed_to_return
         
 def current_grv_integer_cleaned(row):
     current_grv = 0
@@ -202,34 +247,53 @@ def current_grv_integer_cleaned(row):
             current_grv = int(float(row[GRV]))
     return current_grv
 
+def set_feed_HR_LR(patient_object, row_read):
+    if(patient_object.get_risk() == "HR"):
+        patient_object.set_feed(clean_up_feed_high_risk(row_read))
+        # patient_object.set_feed(row_read[FEED_AGE])
+    else:
+        patient_object.set_feed(clean_up_feed_low_risk(row_read)) # this to set the feeding attribute in patient object
 
 
 if __name__ == "__main__":
 
     # current low risk under 40 (b1 b3 b5 b7)
+    ''' 
+        # path  = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv"
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv"
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
+        
+        # patient= Patient()
+        # read_file(path, patient)
+        # low_risk_patients(patient)   
+        # print(patient)
+        # print("\n------------- PATIENT B7 -------------")
+        # print("------------- HOURLY DATA:")
+        # print(patient.print_hourly_data())
+
+
+        # current low risk over 40 (b2 b4 b6)
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv"
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv"
+        # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv"
+
+        # read_file(path, patient)
+        # low_risk_patients(patient)   
+        # print(patient)
+        # print("\n------------- PATIENT B2 -------------")
+        # print("------------- HOURLY DATA:")
+        # print(patient.print_hourly_data())
+    '''
+    ''' ----------- HIGH RISK ----------- '''
+    patient = Patient()
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A1.csv"
+    path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A2.csv"
+    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv"
     
-    # path  = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv"
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv"
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv"
-    path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
     
-    patient= Patient()
-    # read_file(path, patient)
-    # low_risk_patients(patient)   
-    # print(patient)
-    # print("\n------------- PATIENT B7 -------------")
-    # print("------------- HOURLY DATA:")
-    # print(patient.print_hourly_data())
-
-
-    # current low risk over 40 (b2 b4 b6)
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv"
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv"
-    # path = "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv"
-
+    print("High Risk --> A2")
     read_file(path, patient)
-    low_risk_patients(patient)   
+    high_risk_patients(patient)
     print(patient)
-    print("\n------------- PATIENT B2 -------------")
-    print("------------- HOURLY DATA:")
     print(patient.print_hourly_data())
