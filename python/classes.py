@@ -110,9 +110,9 @@ class Patient:
         '''
         self.__dietician_referal = true_false
 
-    def set_reset_counter(self, true_false):
+    def set_reset_counter_bool(self, true_false):
         '''
-            description: 
+            description: set counter boolean value
         '''
         self.__reset_counter = true_false
         
@@ -170,7 +170,7 @@ class Patient:
 
     def get_feed_stopped_boolean(self):
         '''
-            description: 
+            description: becomes true when feeding stops
         '''
         return self.__feed_stop_bool
 
