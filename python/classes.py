@@ -29,6 +29,9 @@ class Patient:
         self.__change_feed_bool = False
         self.__low_risk_transfer_bool = False
 
+        # -- NO MORE DATA --
+        self.__stop_printing_feed_data = False
+
     # ------- SETTER 
     def set_age(self, row):
         self.__age = row[0]
@@ -122,6 +125,10 @@ class Patient:
     def set_low_risk_transfer_bool(self, true_false):
         self.__low_risk_transfer_bool = true_false
 
+    ''' -------- NO MORE DATA STOP PRINTING GETTER--------'''
+    def set_stop_printing_feed_data(self, true_false):
+        self.__stop_printing_feed_data = true_false
+    
     # ------- GETTER
     def get_week_diagnosis(self):
         for day in range(5):
@@ -154,6 +161,8 @@ class Patient:
         for row in self.__data:
             print(row)
 
+    def get_age(self):
+        return self.__age
     ''' -------- LOW RISK GETTER METHODS --------'''
     def get_feed(self):
         return self.__feed
@@ -192,8 +201,12 @@ class Patient:
     def get_low_risk_transfer_bool(self):
         return self.__low_risk_transfer_bool
 
+    ''' -------- NO MORE DATA STOP PRINTING GETTER--------'''
+    def get_stop_printing_feed_data(self):
+        return self.__stop_printing_feed_data
+
     def __str__(self):
-        return "\n------------- Patient's Info:\n" + "age: " + str(self.__age) + "\nweight: " + str(self.__weight) + "\nrisk: " + str(self.__risk) + "\ntarget grv: " + str(self.__target_grv) + "\ncurrent grv: " + str(self.__current_grv) + "\ncurrent feed: " + str(self.__feed) +  "\nweek diagnosis: " + str(self.get_week_diagnosis())
+        return "\n------------- Patient's Info:\n" + "age: " + str(self.__age) + "\nweight: " + str(self.__weight) + "\nrisk: " + str(self.__risk) + "\ntarget grv: " + str(self.__target_grv) + "\ncurrent grv: " + str(self.__current_grv) + "\ncurrent feed: " + str(self.__feed) +  "\nweek diagnosis: " + str(self.get_week_diagnosis()) + "\n"
 
 
 

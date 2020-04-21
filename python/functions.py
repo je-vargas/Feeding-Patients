@@ -55,7 +55,7 @@ def low_risk_patients(patient_passed):
         else:
             hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
             current_grv = current_grv_integer_cleaned(current_row) # returns the current grv as an integer
-            
+
             if(hour % 2 == 0 or (hour % 2 == 1 and current_row[GRV] != "")): # this is using the hours to check either every 2 or 4 hours to populate
 
                 if(patient_passed.get_feed_stopped_boolean()):
@@ -63,14 +63,21 @@ def low_risk_patients(patient_passed):
                 else:
                     adjust_new_feed_low_risk(patient_passed, current_row) #need to feed every 2 hour or check depeding on flowchart and patient
 
-                if(patient_passed.get_risk() == "HR" and not patient_passed.get_feed_stopped_boolean()):
-                    patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
-                    current_vs_target_grv_checker(patient_passed, current_row, current_grv, target_grv, 10)
+                ''' ----- USED BY HIGH RISK ONLY ------ '''
+                # patient_passed.get_risk() == "HR" and
+                if(not patient_passed.get_feed_stopped_boolean()):
+                    if(patient_passed.get_weight() > 40 and patient_passed.get_risk() == "LR"):
+                        patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
+                        current_vs_target_grv_checker(patient_passed, current_row, current_grv, target_grv, 30)
+                    else:
+                        patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
+                        current_vs_target_grv_checker(patient_passed, current_row, current_grv, target_grv, 10)
+                ''' ----- USED BY HIGH RISK ONLY ------ '''
                 
                 if(hour % 4 == 0 and not patient_passed.get_feed_stopped_boolean()): # check every four hours and adjust GRV
 
                     patient_passed.set_current_grv(current_grv) # set new grv read from the data as you read each hour
-                                
+
                     if(patient_passed.get_weight() < 40 ): #patient weight is under 40
 
                         current_vs_target_grv_checker(patient_passed, current_row, current_grv, target_grv, 10)
@@ -120,23 +127,22 @@ def adjust_new_feed_low_risk(patient_passed, row_passed):
     '''
         Description: set feed increments, pauses and normal feeds of patient from original value giving in the CSV file for LOW RISK patients
     '''
-
+    
     stop_feeding = patient_passed.get_feed_stopped_boolean()
-             
+
     if(stop_feeding):
         #current grv higher than target, therefore stop feeding
+        stop_printing_feed(patient_passed)
 
         if(patient_passed.get_dietician_referal_bool() and row_passed[GRV] != ""):
             row_passed[FEED_AGE] = "No Update in the Feed "
             row_passed[ISSUES_WEIGHT] = "Refer to Dietician"
-            # patient_passed.set_dietician_referal_bool(False)
-            # print(str(patient_passed.get_feed_stopped()))
                          
         elif(row_passed[GRV] != ""):
             row_passed[FEED_AGE] = "No Feeding"
             row_passed[ISSUES_WEIGHT] = "Feeding Stopped"
         
-    else:
+    elif(not patient_passed.get_stop_printing_feed_data()):
         row_passed[FEED_AGE] = patient_passed.get_feed()
         row_passed[ISSUES_WEIGHT] = patient_passed.get_diagnosis()
 
@@ -155,9 +161,8 @@ def weekly_diagnosis(day_data, current_patient):
         Descritpion: saves 5 day week diagnosis of the patient to the patients object 
     '''
     array_index = 0
-    weekly_diagnosis = ["populate"] * 5
-    current_diagnosis = "ERM"
-
+    weekly_diagnosis = ["Populate"] * 5
+    current_diagnosis = "change"
 
     if(current_patient.get_risk() == "LR"):
         
@@ -167,11 +172,13 @@ def weekly_diagnosis(day_data, current_patient):
             
             if(current_row[ISSUES_WEIGHT] != ""):
                 current_diagnosis = current_row[ISSUES_WEIGHT]
+            
+            if(current_row[DAY_PATIENT] == "5" and current_row[ISSUES_WEIGHT] == ""):
+                current_diagnosis = "NONE"
 
             if(hour == 22):
                 weekly_diagnosis[array_index] = current_diagnosis
                 array_index += 1
-
 
     else:
         for current_row in day_data:
@@ -227,7 +234,6 @@ def current_grv_integer_cleaned(row):
 def set_feed_HR_LR(patient_object, row_read):
     if(patient_object.get_risk() == "HR"):
         patient_object.set_feed(clean_up_string_to_number(row_read[FEED_AGE]))
-        print(row_read[FEED_AGE])
     else:
         patient_object.set_feed(clean_up_string_to_number(row_read[FEED_AGE])) # this to set the feeding attribute in patient object
 
@@ -284,6 +290,13 @@ def start_of_patient_diagnosis(path, patient):
     read_file(path, patient)
     assign_patient_based_on_risk(patient)
 
+def stop_printing_feed(patient_passed):
+    if(patient_passed.get_weight() == 38 and patient_passed.get_age() == 10):
+        patient_passed.set_stop_printing_feed_data(True)
+
+
+# ------------ 
+print
 
 
 if __name__ == "__main__":
@@ -302,39 +315,39 @@ if __name__ == "__main__":
         "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv",
         "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
     ]
-    patient_onjects = [Patient() for i in range(len(paths))]
+    patient_objects = [Patient() for i in range(len(paths))]
 
-    # for i in range(len(paths)):
+    patient = ["Patient A1", "Patient A2", "Patient A3", "Patient B1", "Patient B2", "Patient B3", "Patient B4", "Patient B5", "Patient B6", "Patient B7"]
 
-    #     start_of_patient_diagnosis(paths[0], patient_onjects[0])
-    #     # print(patient_onjects[i].get_week_diagnosis())
-    #     print(patient_onjects[0])
-    #     print(patient_onjects[0].print_hourly_data())
-    #     print("--------------- next object --------------\n")
+    for i in range(len(paths)):
+
+        start_of_patient_diagnosis(paths[i], patient_objects[i])
+        print(patient_objects[i])
+        print(str(patient[i]) +  str("\n"))
+        print(patient_objects[i].print_hourly_data())
     
-    patient = Patient()
-    # b1 -> 3, b2 -> 4, b3 -> 5, b4 -> 6 , b5 -> 7, b6 -> 8, b7 ->9
-    print("\n----------------------- B7 -----------------------")
-    start_of_patient_diagnosis(paths[9], patient)
+
+    # for day in range(1,6):
+    #     print("Day " + str(day))
+    #     for i in range(len(patient_objects)):
+    #         day_diagnosis = patient_objects[i].get_week_diagnosis()
+    #         print(str(patient[i]) + " " + str(day_diagnosis[:day]))
+    #     print("")
+        
+
+
+
+
+
+    # patient = Patient()
+    # # b1 -> 3, b2 -> 4, b3 -> 5, b4 -> 6 , b5 -> 7, b6 -> 8, b7 ->9
+    # print("\n----------------------- B1 -----------------------")
+    # start_of_patient_diagnosis(paths[4], patient)
+    # print(patient)
     # print(patient.print_hourly_data())
-    print(patient.get_week_diagnosis())
-    print("-----------------------  -----------------------")
+    # print("-----------------------  -----------------------")
    
 
 
 
 
-
-   # def clean_up_feed_low_risk(feed_current_row):
-
-    # '''
-    #     Description: Feed is integer with quantity in ml, this function cleans and returns the number only
-    # '''
-
-    # feed_joined = ''.join(filter(lambda i: i.isdigit(), feed_current_row[FEED_AGE]))
-    # feed_length = len(feed_joined) - 1
-    # feed_to_return = int(feed_joined[0:feed_length])
-    # return feed_to_return
-
-
-    # age = [int(i) for i in patient_info[FEED_AGE].split() if i.isdigit()] 
