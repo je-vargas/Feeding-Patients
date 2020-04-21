@@ -2,6 +2,8 @@ import csv
 import re
 from classes import *
 
+patient = list()
+
 def read_file(file_path, patient_object):
     '''
         DESCRIPTION: populates age, weight, risk, target_grv and diagnosies found from file
@@ -15,6 +17,7 @@ def read_file(file_path, patient_object):
         line_read = csv.reader(csv_file, delimiter=',')
 
         for current_row in line_read: 
+            
             if("DAY" in current_row or current_row[TIME_RISK] == "" ):
                 pass # pass current_rows with no data
             elif("PATIENT" in current_row[DAY_PATIENT]): # if curent column has patient information we add it to the patients class
@@ -82,7 +85,7 @@ def low_risk_patients(patient_passed):
 def high_risk_patients(patient_object):
 
     day_data = patient_object.get_data()
-    
+
     for current_row in day_data:
 
         if(current_row[GRV] == "" and not patient_object.get_low_risk_transfer_bool()): #checks to see if there's a grv value -> in which case transfer to low risk 
@@ -100,22 +103,18 @@ def high_risk_patients(patient_object):
             break
 
     if(patient_object.get_low_risk_transfer_bool()):
-        print(current_row)
         patient_object.set_feed(10)
         low_risk_patients(patient_object)
-
 
 def adjust_new_feed_high_risk(patient_passed, row_passed):
 
     # new_feed_found = patient_passed.get_feed()
 
     if(patient_passed.get_change_feed_bool()):
-        patient_passed.set_feed(clean_up_feed_high_risk(row_passed))
+        patient_passed.set_feed(clean_up_string_to_number(row_passed))
         row_passed[FEED_AGE] = patient_passed.get_feed()
     elif(row_passed[ISSUES_WEIGHT] == 'NONE'):
         row_passed[FEED_AGE] = patient_passed.get_feed()
-
-
 
 def adjust_new_feed_low_risk(patient_passed, row_passed):
     '''
@@ -150,61 +149,73 @@ def reset_counter_after_referal(patient_passed):
     patient_passed.set_dietician_referal_bool(False)
     patient_passed.set_reset_counter_bool(False)
 
-def weekly_diagnosis(day_data, current_paitient):
+def weekly_diagnosis(day_data, current_patient):
 
     '''
         Descritpion: saves 5 day week diagnosis of the patient to the patients object 
     '''
-    day = 0
-    weekly_diagnosis = ["None"] * 5
-    
-    for current_row in day_data:
-        if (current_row[DAY_PATIENT] != "" ):
-            day = int(current_row[DAY_PATIENT]) - 1
+    array_index = 0
+    weekly_diagnosis = ["populate"] * 5
+    current_diagnosis = "ERM"
 
-        if("Refer" in current_row[ISSUES_WEIGHT]):
-            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
-        elif("Feeding" in current_row[ISSUES_WEIGHT] and "22" in current_row[TIME_RISK]):
-            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
-        elif("22" in current_row[TIME_RISK] and current_row[ISSUES_WEIGHT] != ""):
-            weekly_diagnosis[day] = (current_row[ISSUES_WEIGHT])
 
-    current_paitient.set_week_diagnosis(weekly_diagnosis)
+    if(current_patient.get_risk() == "LR"):
+        
+        for current_row in day_data:
+
+            hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
+            
+            if(current_row[ISSUES_WEIGHT] != ""):
+                current_diagnosis = current_row[ISSUES_WEIGHT]
+
+            if(hour == 22):
+                weekly_diagnosis[array_index] = current_diagnosis
+                array_index += 1
+
+
+    else:
+        for current_row in day_data:
+
+            hour = int(current_row[TIME_RISK][:2]) # this returns hour in format 0-23
+            
+            if(current_row[ISSUES_WEIGHT] != ""):
+                current_diagnosis = current_row[ISSUES_WEIGHT]
+
+            if(hour == 23):
+                weekly_diagnosis[array_index] = current_diagnosis
+                array_index += 1
+
+
+    current_patient.set_week_diagnosis(weekly_diagnosis)
 
 def clean_up_string(patient_info):
+
     cleaned_data = list()
     risk = patient_info[TIME_RISK]
-    age = [int(i) for i in patient_info[FEED_AGE].split() if i.isdigit()]
-    weight = [int(i) for i in patient_info[ISSUES_WEIGHT].split() if i.isdigit()]
+    age = clean_up_string_to_number(patient_info[FEED_AGE])
+    weight = clean_up_string_to_number(patient_info[ISSUES_WEIGHT])
 
-    cleaned_data.append(age[0])
-    cleaned_data.append(weight[0])
+
+    cleaned_data.append(age)
+    cleaned_data.append(weight)
     cleaned_data.append(risk)
+
 
     # print("cleaned data is: " + str(cleaned_data))
     return cleaned_data
 
-def clean_up_feed_low_risk(feed_current_row):
+def clean_up_string_to_number(string_passed):
 
     '''
         Description: Feed is integer with quantity in ml, this function cleans and returns the number only
     '''
+    feed_into_array = re.findall(r"[-+]?\d*\.\d+|\d+", str(string_passed))
 
-    feed_joined = ''.join(filter(lambda i: i.isdigit(), feed_current_row[FEED_AGE]))
-    feed_length = len(feed_joined) - 1
-    feed_to_return = int(feed_joined[0:feed_length])
-    return feed_to_return
-
-def clean_up_feed_high_risk(feed_current_row):
-
-    '''
-        Description: Feed is integer with quantity in ml, this function cleans and returns the number only
-    '''
-    feed_into_array = re.findall(r"[-+]?\d*\.\d+|\d+", feed_current_row[FEED_AGE])
     if feed_into_array[0].isdigit():
         feed_to_return = int(feed_into_array[0])
     else:
         feed_to_return = float(feed_into_array[0])
+
     return feed_to_return
         
 def current_grv_integer_cleaned(row):
@@ -215,10 +226,10 @@ def current_grv_integer_cleaned(row):
 
 def set_feed_HR_LR(patient_object, row_read):
     if(patient_object.get_risk() == "HR"):
-        patient_object.set_feed(clean_up_feed_high_risk(row_read))
-        # patient_object.set_feed(row_read[FEED_AGE])
+        patient_object.set_feed(clean_up_string_to_number(row_read[FEED_AGE]))
+        print(row_read[FEED_AGE])
     else:
-        patient_object.set_feed(clean_up_feed_low_risk(row_read)) # this to set the feeding attribute in patient object
+        patient_object.set_feed(clean_up_string_to_number(row_read[FEED_AGE])) # this to set the feeding attribute in patient object
 
 def feeding_stopped_low_risk(patient_passed, current_row,current_grv, target_grv):
     '''
@@ -260,59 +271,70 @@ def current_vs_target_grv_checker(patient_passed, current_row, current_grv, targ
         patient_passed.set_feed_stop_counter()
         adjust_new_feed_low_risk(patient_passed, current_row)
 
-def low_risk_complete(path, patient):
+def assign_patient_based_on_risk(patient_object):
+    if(patient_object.get_risk() == "HR"):
+        high_risk_patients(patient_object)
+    else:
+        low_risk_patients(patient_object)
+
+def start_of_patient_diagnosis(path, patient):
+    '''
+        Description: entry point of system
+    '''
     read_file(path, patient)
-    low_risk_patients(patient)
+    assign_patient_based_on_risk(patient)
+
 
 
 if __name__ == "__main__":
 
-    print("Low Risk")
+    "!!!----------------------- LOOK AT THIS BIT BRO -----------------------!!!!"
 
     paths = [
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv", 
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv", 
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv", 
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv", 
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv", 
         "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A1.csv",
         "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A2.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv"
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv",
+        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
     ]
-    
-    # path_hr = [
-    #     "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A1.csv",
-    #     "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A2.csv",
-    #     "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv"
-    # ]
-        
-    obj = [Patient() for i in range(len(paths))]
+    patient_onjects = [Patient() for i in range(len(paths))]
 
-    for i in range(len(obj)):
-        low_risk_complete(paths[i], obj[i])
-    
-        
-    # patient= Patient()
-    # read_file(path_, patient)
-    # low_risk_patients(patient)   
-    # print(patient)
+    # for i in range(len(paths)):
 
-    # read_file(path_, patient)
-    # low_risk_patients(patient)   
-    # print(patient)
-    # print("\n------------- PATIENT B2 -------------")
-    # print("------------- HOURLY DATA:")
+    #     start_of_patient_diagnosis(paths[0], patient_onjects[0])
+    #     # print(patient_onjects[i].get_week_diagnosis())
+    #     print(patient_onjects[0])
+    #     print(patient_onjects[0].print_hourly_data())
+    #     print("--------------- next object --------------\n")
+    
+    patient = Patient()
+    # b1 -> 3, b2 -> 4, b3 -> 5, b4 -> 6 , b5 -> 7, b6 -> 8, b7 ->9
+    print("\n----------------------- B7 -----------------------")
+    start_of_patient_diagnosis(paths[9], patient)
     # print(patient.print_hourly_data())
-    
-    ''' ----------- HIGH RISK ----------- '''
-    
-    # patient = Patient()
-    
-    # print("High Risk --> A2")
-    # read_file(path_, patient)
-    # high_risk_patients(patient)
-    # # low_risk_patients(patient)
-    # print(patient)
-    # print(patient.print_hourly_data())
+    print(patient.get_week_diagnosis())
+    print("-----------------------  -----------------------")
+   
+
+
+
+
+
+   # def clean_up_feed_low_risk(feed_current_row):
+
+    # '''
+    #     Description: Feed is integer with quantity in ml, this function cleans and returns the number only
+    # '''
+
+    # feed_joined = ''.join(filter(lambda i: i.isdigit(), feed_current_row[FEED_AGE]))
+    # feed_length = len(feed_joined) - 1
+    # feed_to_return = int(feed_joined[0:feed_length])
+    # return feed_to_return
+
+
+    # age = [int(i) for i in patient_info[FEED_AGE].split() if i.isdigit()] 

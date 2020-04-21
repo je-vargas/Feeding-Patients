@@ -4,7 +4,6 @@ TIME_RISK= 1
 FEED_AGE = 2 
 GRV = 3
 ISSUES_WEIGHT= 4
-MAX_FEEDING_OVER_40 = "250"
 
 class Patient:
 
@@ -153,7 +152,7 @@ class Patient:
 
     def print_hourly_data(self):
         for row in self.__data:
-            print(str(row))
+            print(row)
 
     ''' -------- LOW RISK GETTER METHODS --------'''
     def get_feed(self):
