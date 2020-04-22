@@ -1,14 +1,31 @@
+'''
+File: DADSA Coursework_B
+Author: Juan Esteban Vargas Salamanca
+Date: 22/04/2020
+Description: Function used in Sysem
+'''
+
 import csv
 import re
 from classes import *
 
-patient = list()
+CSV_PATHS = [
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A1.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A2.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv",
+    "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
+]
 
 def read_file(file_path, patient_object):
     '''
         DESCRIPTION: populates age, weight, risk, target_grv and diagnosies found from file
-        Additioanl info: calls clean_up_string function to clean the data saved into the object
-
+        INPUT: takes csv file path and patient object -> saves to object
     '''
     hourly_data = list()
     
@@ -40,6 +57,7 @@ def read_file(file_path, patient_object):
 def low_risk_patients(patient_passed):
     '''
         DESCRIPTION: Follows low risk patient flowchart, populating patient feeds 
+        INPUT: Patient object passed 
     '''
     # ------------- function variables declaration
     day_data = patient_passed.get_data() #returns the array with hourly data
@@ -90,6 +108,11 @@ def low_risk_patients(patient_passed):
     patient_passed.set_data(day_data)    
 
 def high_risk_patients(patient_object):
+    '''
+        DESCRIPTION: Follows High risk patient flowchart, populating patient feeds , 
+                    also transfer patient over to low risk when necessary to do so as per flowchart
+        INPUT: Patient object passed 
+    '''
 
     day_data = patient_object.get_data()
 
@@ -115,7 +138,10 @@ def high_risk_patients(patient_object):
 
 def adjust_new_feed_high_risk(patient_passed, row_passed):
 
-    # new_feed_found = patient_passed.get_feed()
+    '''
+        DESCRIPTION: fills high risk feed of patient 
+        INPUT: patient object and the current row looked at in the data --> (this one hour (row))
+    '''
 
     if(patient_passed.get_change_feed_bool()):
         patient_passed.set_feed(clean_up_string_to_number(row_passed))
@@ -125,7 +151,8 @@ def adjust_new_feed_high_risk(patient_passed, row_passed):
 
 def adjust_new_feed_low_risk(patient_passed, row_passed):
     '''
-        Description: set feed increments, pauses and normal feeds of patient from original value giving in the CSV file for LOW RISK patients
+        DESCRIPTION: set feed increments, pauses and normal feeds of patient from original value giving in the CSV file for LOW RISK patients
+        INPUT: patient object and the current row looked at in the data --> (this one hour (row))
     '''
     
     stop_feeding = patient_passed.get_feed_stopped_boolean()
@@ -148,7 +175,9 @@ def adjust_new_feed_low_risk(patient_passed, row_passed):
 
 def reset_counter_after_referal(patient_passed):
     '''
-        Description: allows referal to dietician once counter is 3 and resets counter to 0
+        DESCRIPTION: allows referal to dietician once counter is 3 and resets counter to 0
+        INPUT: Patient object
+
     '''
     patient_passed.set_reset_counter_bool(True)
     patient_passed.set_feed_stop_counter(0)
@@ -158,7 +187,8 @@ def reset_counter_after_referal(patient_passed):
 def weekly_diagnosis(day_data, current_patient):
 
     '''
-        Descritpion: saves 5 day week diagnosis of the patient to the patients object 
+        DESCRIPTION: saves 5 day week diagnosis of the patient to the patients object 
+        INPUT: patient object, and array contatining all the day feeds
     '''
     array_index = 0
     weekly_diagnosis = ["Populate"] * 5
@@ -197,6 +227,12 @@ def weekly_diagnosis(day_data, current_patient):
 
 def clean_up_string(patient_info):
 
+    '''
+        DESCRIPTION: used when reading the file to save patient weight, age, and risk in a cleaned format
+        INPUT: patient object
+        OUTPUT: array containing cleaned data
+    '''
+
     cleaned_data = list()
     risk = patient_info[TIME_RISK]
     age = clean_up_string_to_number(patient_info[FEED_AGE])
@@ -214,7 +250,9 @@ def clean_up_string(patient_info):
 def clean_up_string_to_number(string_passed):
 
     '''
-        Description: Feed is integer with quantity in ml, this function cleans and returns the number only
+        DESCRIPTION: Feed is integer with quantity in ml, this function cleans and returns the number only
+        INPUT: String to be cleaned passed
+        OUTPUT: return array contatining the cleaned data
     '''
     feed_into_array = re.findall(r"[-+]?\d*\.\d+|\d+", str(string_passed))
 
@@ -226,12 +264,23 @@ def clean_up_string_to_number(string_passed):
     return feed_to_return
         
 def current_grv_integer_cleaned(row):
+    '''
+        DESCRIPTION: makes the grv an integer to sav
+        INPUT: row read in loop as you itereate over hourly data
+        OUTPUT: the GRV returned as an integer
+
+    '''
     current_grv = 0
     if (row[GRV] != "GRV" and row[GRV] != ""):
             current_grv = int(float(row[GRV]))
     return current_grv
 
 def set_feed_HR_LR(patient_object, row_read):
+    '''
+        DESCRIPTION: used in reading file function to direct object to be processed by high risk algorithm or low risk algorithm
+        INPUT: patient object and row read in loop 
+    '''
+    
     if(patient_object.get_risk() == "HR"):
         patient_object.set_feed(clean_up_string_to_number(row_read[FEED_AGE]))
     else:
@@ -239,7 +288,8 @@ def set_feed_HR_LR(patient_object, row_read):
 
 def feeding_stopped_low_risk(patient_passed, current_row,current_grv, target_grv):
     '''
-        Description: handles all the event when the feeding is stoped for a patients
+        DESCRIPTION: handles all the event when the feeding is stoped for a patients
+        INPUT:  patient object, row read in loop, grv and target grv to 
     '''
     patient_passed.set_current_grv(current_grv)
 
@@ -265,6 +315,11 @@ def feeding_stopped_low_risk(patient_passed, current_row,current_grv, target_grv
 
 def current_vs_target_grv_checker(patient_passed, current_row, current_grv, target_grv, new_feed):
 
+    '''
+        DESCRIPTION: handles  event when grv is less than target or vice versa 
+        INPUT:  patient object, row read in loop, grv,  target grv and new feed to set the increment to
+    '''
+
     if(current_grv <= target_grv and current_row[GRV] != "" ):  #current target is less so increment feed and the grv is present
         patient_passed.set_feed_increment_boolean(True)
         patient_passed.set_feed_stopped_boolean(False)
@@ -278,6 +333,10 @@ def current_vs_target_grv_checker(patient_passed, current_row, current_grv, targ
         adjust_new_feed_low_risk(patient_passed, current_row)
 
 def assign_patient_based_on_risk(patient_object):
+    '''
+        DESCRIPTION: controlls whether a patient is passed into the high risk or low risk algorithm 
+        INPUT:  patient object
+    '''
     if(patient_object.get_risk() == "HR"):
         high_risk_patients(patient_object)
     else:
@@ -291,63 +350,151 @@ def start_of_patient_diagnosis(path, patient):
     assign_patient_based_on_risk(patient)
 
 def stop_printing_feed(patient_passed):
+    '''
+        DESCRIPTION: checks for a specific condition were printing must stop as no more data is present
+        INPUT:  patient object
+    '''
+
     if(patient_passed.get_weight() == 38 and patient_passed.get_age() == 10):
         patient_passed.set_stop_printing_feed_data(True)
 
+def day_to_day_diagnosis_print(patient_list, patient_file__order):
+    '''
+        DESCRIPTION: prints day by day diagnosis of all patients
+        INPUT: Patient list that holds end of day diagnosis and and patient list to match diagnosis with patient
+    '''
+    for day in range(1,6):
+        print("Day " + str(day))
+        for i in range(len(patient_list)):
+            day_diagnosis = patient_list[i].get_week_diagnosis()
+            print(str(patient_file__order[i]) + " = " + str(day_diagnosis[:day]))
+        print("")
 
-# ------------ 
-print
 
+''' ---------- SORTING ------------'''
+
+def partition(patient_list_tracker, list_to_sort, first_index_in_list, last_index_in_list): 
+
+    i = (first_index_in_list - 1)         # index of smaller element 
+    pivot = list_to_sort[last_index_in_list]     # pivot 
+  
+    for j in range(first_index_in_list , last_index_in_list): 
+  
+        # If current element is smaller than or 
+        # equal to pivot 
+        if (list_to_sort[j] <= pivot): 
+            # print(str(list_to_sort[j]) + " pivot: " + str(pivot))
+          
+            # increment index of smaller element 
+            i = i+1 
+
+            patient_list_tracker[i],patient_list_tracker[j] = patient_list_tracker[j],patient_list_tracker[i] 
+            list_to_sort[i],list_to_sort[j] = list_to_sort[j],list_to_sort[i] 
+  
+    patient_list_tracker[i+1],patient_list_tracker[last_index_in_list] = patient_list_tracker[last_index_in_list],patient_list_tracker[i+1] 
+    list_to_sort[i+1],list_to_sort[last_index_in_list] = list_to_sort[last_index_in_list],list_to_sort[i+1] 
+    
+    return (i + 1) 
+  
+# Function to do Quick sort 
+def quickSort(patient_list_tracker, list_to_sort, first_index_in_list, last_index_in_list): 
+    if first_index_in_list < last_index_in_list: 
+  
+        # pi is partitioning index, arr[p] is now 
+        # at right place 
+        pi = partition(patient_list_tracker, list_to_sort, first_index_in_list, last_index_in_list) 
+  
+        # Separately sort elements before 
+        # partition and after partition 
+        quickSort(patient_list_tracker, list_to_sort, first_index_in_list, pi - 1) 
+        quickSort(patient_list_tracker, list_to_sort, pi + 1, last_index_in_list) 
+
+def transform_list_to_sort(change_list):
+    '''
+        DESCRIPTION: takes list to sort and changes the values to make it easier to sort
+        INPUT:  takes list to be sorted
+    '''
+    for i in range(len(change_list)):
+        for day in range(5):
+            if(change_list[i][day] == "NONE"):
+                change_list[i][day] = 0
+            
+            elif(change_list[i][day] == "Feeding Stopped"):
+                change_list[i][day] = 1
+            
+            elif(change_list[i][day] == "Refer to Dietician"):
+                change_list[i][day] = 2
+    return change_list
+
+def revert_list_to_original_state(change_list):
+    '''
+        DESCRIPTION: list sorted is then reverted back to it's original state 
+        INPUT: list sorted of end day diagnosis
+    '''
+    for i in range(len(change_list)):
+        for day in range(5):
+            if(change_list[i][day] == 0):
+                change_list[i][day] = "NONE"
+            elif(change_list[i][day] == 1):
+                change_list[i][day] = "Feeding Stopped"
+            elif(change_list[i][day] == 2):
+                change_list[i][day] = "Refer to Dietician"
+    return change_list
+
+def ammend_sort(array_to_sort, sort_patient_list):
+
+    '''
+        DESCRIPTION: ammends the sorted list
+        INPUT:  list to the sorted and list of patient to match the diagnosis to 
+    '''
+    size = len(array_to_sort) - 1 
+    for i in range(size, -1, -1):
+        if(i - 1 < 0):
+            i = 0
+            break
+
+        if(array_to_sort[i][3] < array_to_sort[i-1][3]):
+            swap_up = array_to_sort[i]
+            swap_down = array_to_sort[i-1]
+            array_to_sort[i] = swap_down
+            array_to_sort[i-1] = swap_up
+
+            swap_up_patient = sort_patient_list[i]
+            swap_down_patient = sort_patient_list[i-1]
+            sort_patient_list[i] = swap_down_patient
+            sort_patient_list[i-1] = swap_up_patient
+
+def complete_sort(patient_lists, array_to_sort):
+
+    '''
+        DESCRIPTION: handles all the sorting of the list calling all the necessary functions
+        INPUT: list to the sorted and list of patient to match the diagnosis to 
+    '''
+    size_of_list = len(array_to_sort)
+
+    quickSort(patient_lists, transform_list_to_sort(array_to_sort), 0, size_of_list - 1)
+
+    ammend_sort(array_to_sort, patient_lists)
+
+    revert_list_to_original_state(array_to_sort)
+    print("------ Patient's Sorted by Progress Made ------\n")
+    for i in range(len(array_to_sort)):
+       print(str(patient_lists[i]) + " = " + str(array_to_sort[i]))
+    
 
 if __name__ == "__main__":
 
-    "!!!----------------------- LOOK AT THIS BIT BRO -----------------------!!!!"
+    patient_objects = [Patient() for i in range(len(CSV_PATHS))]
+    order_patient_files = ["Patient A1", "Patient A2", "Patient A3", "Patient B1", "Patient B2", "Patient B3", "Patient B4", "Patient B5", "Patient B6", "Patient B7"]
+    end_day_diagnosis = list()
 
-    paths = [
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A1.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A2.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT A3.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B1.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B2 (2).csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B3.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B4.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B5.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B6.csv",
-        "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
-    ]
-    patient_objects = [Patient() for i in range(len(paths))]
+    # loop takes all the patients objects with csv to populate data
+    for i in range(len(CSV_PATHS)):
+        start_of_patient_diagnosis(CSV_PATHS[i], patient_objects[i])
+        end_day_diagnosis.append(patient_objects[i].get_week_diagnosis())
 
-    patient = ["Patient A1", "Patient A2", "Patient A3", "Patient B1", "Patient B2", "Patient B3", "Patient B4", "Patient B5", "Patient B6", "Patient B7"]
-
-    for i in range(len(paths)):
-
-        start_of_patient_diagnosis(paths[i], patient_objects[i])
-        print(patient_objects[i])
-        print(str(patient[i]) +  str("\n"))
-        print(patient_objects[i].print_hourly_data())
+    day_to_day_diagnosis_print(patient_objects, order_patient_files) # prints all patiets end of day diagnosis sequencially as required
+    complete_sort(order_patient_files, end_day_diagnosis)    
     
-
-    # for day in range(1,6):
-    #     print("Day " + str(day))
-    #     for i in range(len(patient_objects)):
-    #         day_diagnosis = patient_objects[i].get_week_diagnosis()
-    #         print(str(patient[i]) + " " + str(day_diagnosis[:day]))
-    #     print("")
-        
-
-
-
-
-
-    # patient = Patient()
-    # # b1 -> 3, b2 -> 4, b3 -> 5, b4 -> 6 , b5 -> 7, b6 -> 8, b7 ->9
-    # print("\n----------------------- B1 -----------------------")
-    # start_of_patient_diagnosis(paths[4], patient)
-    # print(patient)
-    # print(patient.print_hourly_data())
-    # print("-----------------------  -----------------------")
-   
-
-
-
-
+    
+    

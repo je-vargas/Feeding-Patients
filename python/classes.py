@@ -1,3 +1,12 @@
+'''
+File: DADSA Coursework_B
+Author: Juan Esteban Vargas Salamanca
+Date: 22/04/2020
+Description: Class used in System 
+'''
+
+
+
 # GLOBALS USED 
 DAY_PATIENT = 0
 TIME_RISK= 1
@@ -157,12 +166,14 @@ class Patient:
     def get_weight(self):
         return self.__weight
 
+    def get_age(self):
+        return self.__age
+        
     def print_hourly_data(self):
         for row in self.__data:
             print(row)
 
-    def get_age(self):
-        return self.__age
+    
     ''' -------- LOW RISK GETTER METHODS --------'''
     def get_feed(self):
         return self.__feed
