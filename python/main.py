@@ -1,3 +1,11 @@
+'''
+File: DADSA Coursework_B
+Author: Juan Esteban Vargas Salamanca
+Date: 22/04/2020
+Description: ALl Code is run from here
+'''
+
+
 from functions import *
 from classes import *
 
