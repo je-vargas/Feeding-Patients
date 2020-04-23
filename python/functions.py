@@ -22,6 +22,7 @@ CSV_PATHS = [
     "/Users/juanestebanvargassalamanca/Desktop/Desktop – Juan’s MacBook Pro/UNI/Computer_Science /2nd_Year/Algorithm_DataStructures_(Python) /ASSIGNMENT_2/patients_csv/PATIENT DATA - PATIENT B7.csv"
 ]
 
+# --------------------------------------- MAIN PROCESSING FUNCITONS ---------------------------------------
 def read_file(file_path, patient_object):
     '''
         DESCRIPTION: populates age, weight, risk, target_grv and diagnosies found from file
@@ -136,6 +137,9 @@ def high_risk_patients(patient_object):
         patient_object.set_feed(10)
         low_risk_patients(patient_object)
 
+
+# --------------------------------------- MAIN PROCESSING FUNCITONS ---------------------------------------
+
 def adjust_new_feed_high_risk(patient_passed, row_passed):
 
     '''
@@ -144,7 +148,7 @@ def adjust_new_feed_high_risk(patient_passed, row_passed):
     '''
 
     if(patient_passed.get_change_feed_bool()):
-        patient_passed.set_feed(clean_up_string_to_number(row_passed))
+        patient_passed.set_feed(clean_up_string_to_number(row_passed[FEED_AGE]))
         row_passed[FEED_AGE] = patient_passed.get_feed()
     elif(row_passed[ISSUES_WEIGHT] == 'NONE'):
         row_passed[FEED_AGE] = patient_passed.get_feed()
